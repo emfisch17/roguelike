@@ -1,5 +1,8 @@
-from map_objects.tile import Tile
+from random import randint
+
 from map_objects.rectangle import Rectangle
+from map_objects.tile import Tile
+
 
 class GameMap:
     def __init__(self, width, height):
@@ -12,20 +15,75 @@ class GameMap:
 
         return tiles
 
-    def make_room(self, room):
-        # make all tiles within rectangle passable
-        for x in range(room.x1+1, room.x2):
-            for y in range(room.y1+1, room.y2):
+    def make_map(self, max_rooms, room_min_size, room_max_size, map_width, map_height, player):
+        rooms = []
+        num_rooms = 0
+
+        for r in range(max_rooms):
+            # random width/height
+            w = randint(room_min_size, room_max_size)
+            h = randint(room_min_size, room_max_size)
+            # random position within map boundary
+            x = randint(0, map_width - w - 1)
+            y = randint(0, map_height - h - 1)
+
+            # Using Rectangle class makes the rooms easier to work with
+            new_room = Rectangle(x, y, w, h)
+
+            # run through the other rooms and see if they intersect with this one
+            for other_room in rooms:
+                if new_room.intersect(other_room):
+                    break
+            else:
+                # no intersections -> we can create the room
+
+                # draw it on the map's tiles
+                self.create_room(new_room)
+
+                # center of new room
+                (new_x, new_y) = new_room.center()
+
+                if num_rooms == 0:
+                    # first room -> where player begins
+                    player.x = new_x
+                    player.y = new_y
+                else:
+                    # all rooms after the first:
+                    # connect it to the previous room via tunnel
+
+                    # center of previous room
+                    (prev_x, prev_y) = rooms[num_rooms - 1].center()
+
+                    # coin flip
+                    if randint(0, 1) == 1:
+                        # first move horizontally, then vertically
+                        self.create_h_tunnel(prev_x, new_x, prev_y)
+                        self.create_v_tunnel(prev_y, new_y, new_x)
+                    else:
+                        # first move vertically, then horizontally
+                        self.create_v_tunnel(prev_y, new_y, prev_x)
+                        self.create_h_tunnel(prev_x, new_x, new_y)
+
+                        # add new room to the list of rooms
+                rooms.append(new_room)
+                num_rooms += 1
+
+    def create_room(self, room):
+        # make the tiles of the room passable
+        for x in range(room.x1 + 1, room.x2):
+            for y in range(room.y1 + 1, room.y2):
                 self.tiles[x][y].blocked = False
                 self.tiles[x][y].block_sight = False
 
-    def make_map(self):
-        # Make 2 rooms just for demo
-        room1 = Rectangle(20, 15, 10, 15)
-        room2 = Rectangle(35, 15, 10, 15)
+    def create_h_tunnel(self, x1, x2, y):
+        for x in range(min(x1, x2), max(x1, x2) + 1):
+            self.tiles[x][y].blocked = False
+            self.tiles[x][y].block_sight = False
 
-        self.make_room(room1)
-        self.make_room(room2)
+    def create_v_tunnel(self, y1, y2, x):
+        for y in range(min(y1, y2), max(y1, y2) + 1):
+            self.tiles[x][y].blocked = False
+            self.tiles[x][y].block_sight = False
 
     def is_blocked(self, x, y):
         if self.tiles[x][y].blocked:
