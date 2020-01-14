@@ -1,7 +1,11 @@
 from random import randint
+import tcod as libtcod
 
+from components.ai import BasicMonster
+from components.fighter import Fighter
 from map_objects.rectangle import Rectangle
 from map_objects.tile import Tile
+from entity import Entity
 
 
 class GameMap:
@@ -15,7 +19,8 @@ class GameMap:
 
         return tiles
 
-    def make_map(self, max_rooms, room_min_size, room_max_size, map_width, map_height, player):
+    def make_map(self, max_rooms, room_min_size, room_max_size, map_width,
+                 map_height, player, entities, max_monsters):
         rooms = []
         num_rooms = 0
 
@@ -64,7 +69,9 @@ class GameMap:
                         self.create_v_tunnel(prev_y, new_y, prev_x)
                         self.create_h_tunnel(prev_x, new_x, new_y)
 
-                        # add new room to the list of rooms
+                self.place_entities(new_room, entities, max_monsters)
+
+                # add new room to the list of rooms
                 rooms.append(new_room)
                 num_rooms += 1
 
@@ -84,6 +91,30 @@ class GameMap:
         for y in range(min(y1, y2), max(y1, y2) + 1):
             self.tiles[x][y].blocked = False
             self.tiles[x][y].block_sight = False
+
+    def place_entities(self, room, entities, max_monsters):
+        # Get random number for monsters
+        num_monsters = randint(0, max_monsters)
+
+        for i in range(num_monsters):
+            # Pick a random location in the room
+            x = randint(room.x1 + 1, room.x2 - 1)
+            y = randint(room.y1 +1, room.y2 - 1)
+
+            if not any([entity for entity in entities if entity.x == x and entity.y == y]):
+                if randint(0, 100) < 80:
+                    fighter_comp = Fighter(hp=10, defense=0, power=3)
+                    ai_comp = BasicMonster()
+
+                    monster = Entity(x, y, 'O', libtcod.desaturated_green, 'Orc',
+                                     blocks=True, fighter=fighter_comp, ai=ai_comp)
+                else:
+                    fighter_comp = Fighter(hp=16, defense=1, power=4)
+                    ai_comp = BasicMonster()
+
+                    monster = Entity(x, y, 'T', libtcod.darker_green, 'Troll',
+                                     blocks=True, fighter=fighter_comp, ai=ai_comp)
+                entities.append(monster)
 
     def is_blocked(self, x, y):
         if self.tiles[x][y].blocked:
