@@ -3,9 +3,12 @@ import tcod as libtcod
 
 from components.ai import BasicMonster
 from components.fighter import Fighter
+from components.item import Item
 from map_objects.rectangle import Rectangle
 from map_objects.tile import Tile
 from entity import Entity
+from item_functions import heal, lightning_attack
+from render_functions import RenderOrder
 
 
 class GameMap:
@@ -20,7 +23,7 @@ class GameMap:
         return tiles
 
     def make_map(self, max_rooms, room_min_size, room_max_size, map_width,
-                 map_height, player, entities, max_monsters):
+                 map_height, player, entities, max_monsters, max_items):
         rooms = []
         num_rooms = 0
 
@@ -69,7 +72,7 @@ class GameMap:
                         self.create_v_tunnel(prev_y, new_y, prev_x)
                         self.create_h_tunnel(prev_x, new_x, new_y)
 
-                self.place_entities(new_room, entities, max_monsters)
+                self.place_entities(new_room, entities, max_monsters, max_items)
 
                 # add new room to the list of rooms
                 rooms.append(new_room)
@@ -92,9 +95,10 @@ class GameMap:
             self.tiles[x][y].blocked = False
             self.tiles[x][y].block_sight = False
 
-    def place_entities(self, room, entities, max_monsters):
+    def place_entities(self, room, entities, max_monsters, max_items):
         # Get random number for monsters
         num_monsters = randint(0, max_monsters)
+        num_items = randint(0, max_items)
 
         for i in range(num_monsters):
             # Pick a random location in the room
@@ -106,15 +110,34 @@ class GameMap:
                     fighter_comp = Fighter(hp=10, defense=0, power=3)
                     ai_comp = BasicMonster()
 
-                    monster = Entity(x, y, 'O', libtcod.desaturated_green, 'Orc',
-                                     blocks=True, fighter=fighter_comp, ai=ai_comp)
+                    monster = Entity(x, y, 'O', libtcod.desaturated_green, 'Orc', blocks=True,
+                                     render_order=RenderOrder.ACTOR, fighter=fighter_comp, ai=ai_comp)
                 else:
                     fighter_comp = Fighter(hp=16, defense=1, power=4)
                     ai_comp = BasicMonster()
 
-                    monster = Entity(x, y, 'T', libtcod.darker_green, 'Troll',
-                                     blocks=True, fighter=fighter_comp, ai=ai_comp)
+                    monster = Entity(x, y, 'T', libtcod.darker_green, 'Troll', blocks=True,
+                                     render_order=RenderOrder.ACTOR, fighter=fighter_comp, ai=ai_comp)
                 entities.append(monster)
+
+        for i in range(num_items):
+            x = randint(room.x1 + 1, room.x2 - 1)
+            y = randint(room.y1 + 1, room.y2 - 1)
+
+            if not any([entity for entity in entities if entity.x == x and entity.y == y]):
+                item_chance = randint(0, 100)
+
+                if item_chance < 70:
+                    item_comp = Item(use_function=heal, amount=4)
+                    item = Entity(x, y, '!', libtcod.violet, 'Healing Potion',
+                                  render_order=RenderOrder.ITEM, item=item_comp)
+
+                else:
+                    item_comp = Item(use_function=lightning_attack, damage=20, max_range=5)
+                    item = Entity(x, y, '#', libtcod.Color(255, 255, 0), 'Lightning Scroll', render_order=RenderOrder.ITEM,
+                                  item=item_comp)
+
+                entities.append(item)
 
     def is_blocked(self, x, y):
         if self.tiles[x][y].blocked:
