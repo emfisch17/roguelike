@@ -7,7 +7,7 @@ def handle_keys(key, game_state):
         return handle_player_turn_keys(key)
     elif game_state == GameStates.PLAYER_DEAD:
         return handle_player_dead_keys(key)
-    elif game_state == GameStates.SHOW_INVENTORY:
+    elif game_state in (GameStates.SHOW_INVENTORY, GameStates.DROP_INVENTORY):
         return handle_inventory_keys(key)
 
     return {}
@@ -17,28 +17,31 @@ def handle_player_turn_keys(key):
     key_char = chr(key.c)
 
     # Movement keys
-    if key.vk == libtcod.KEY_UP or key_char == 'w':
+    if key.vk == libtcod.KEY_UP or key_char == 'k':
         return {'move': (0, -1)}
-    elif key.vk == libtcod.KEY_DOWN or key_char == 's':
+    elif key.vk == libtcod.KEY_DOWN or key_char == 'j':
         return {'move': (0, 1)}
-    elif key.vk == libtcod.KEY_LEFT or key_char == 'a':
+    elif key.vk == libtcod.KEY_LEFT or key_char == 'h':
         return {'move': (-1, 0)}
-    elif key.vk == libtcod.KEY_RIGHT or key_char == 'd':
+    elif key.vk == libtcod.KEY_RIGHT or key_char == 'l':
         return {'move': (1, 0)}
-    elif key_char == 'q':
+    elif key_char == 'y':
         return {'move': (-1, -1)}
-    elif key_char == 'e':
+    elif key_char == 'u':
         return {'move': (1, -1)}
-    elif key_char == 'z':
+    elif key_char == 'b':
         return {'move': (-1, 1)}
-    elif key_char == 'c':
+    elif key_char == 'n':
         return {'move': (1, 1)}
 
-    if key_char == 'f':
+    if key_char == 'g':
         return {'pickup': True}
 
     elif key_char == 'i':
         return {'show_inventory': True}
+
+    elif key_char == 'd':
+        return {'drop_inventory': True}
 
     if key.vk == libtcod.KEY_ENTER and key.lalt:
         # Alt+Enter -> toggle full screen
